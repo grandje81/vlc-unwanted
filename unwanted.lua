@@ -28,7 +28,7 @@ function descriptor()
 		version = "1.0",
 		license = "MIT",
 		shortdesc = "Unwanted",
-		description = "Removes unwanted files",
+		description = "Moves/removes unwanted files, through the use of rating",
 		author = "devilops",
 		capabilities = {"playing-listener", "input-listener"}
 	}
@@ -52,13 +52,19 @@ local store = {}             -- holds all music items from the database
 local dialog                 -- main GUI interface
 local prefix = "[unwanted] "  -- prefix to log messages
 local data_file = "C://VideoTittaren"         -- path to data file
+local destRemove = data_file .. "/remove/" -- path to destination folder
+local destKeep = data_file .. "/keep/" -- path to destination folder
+local destTwo = data_file .. "/2/" 
+local destThree = data_file .. "/3/"
+local destFour = data_file .. "/4/"
 
 function activate()
 	vlc.msg.info(prefix .. "Hello!")
 
 	math.randomseed(os.time())
 
-	data_file = vlc.config.userdatadir() .. "/unwanted.csv"
+	-- data_file = vlc.config.userdatadir() .. "/unwanted.csv"
+	data_file = "C://VideoTittaren" .. "/unwanted.csv"
 	config_file = vlc.config.configdir() .. "/unwanted.cfg"
 	vlc.msg.info(prefix .. "using data file " .. data_file)
 	vlc.msg.info(prefix .. "using config file " .. config_file)
@@ -130,36 +136,36 @@ function show_gui()
 	dialog:show()
 end
 
-function update_min_max_dropdowns()
-	local rating_values = {[0] = "Unrated"}
-	for i=1,config.max_rating do
-		rating_values[i] = i
-	end
+-- function update_min_max_dropdowns()
+-- 	local rating_values = {[0] = "Unrated"}
+-- 	for i=1,config.max_rating do
+-- 		rating_values[i] = i
+-- 	end
 
-	if config.shuffle_max_rating > config.max_rating then
-		config.shuffle_max_rating = config.max_rating
-	end
+-- 	if config.shuffle_max_rating > config.max_rating then
+-- 		config.shuffle_max_rating = config.max_rating
+-- 	end
 
-	dropdown_min_rating:clear()
-	-- add selected item as first item in dropdown
-	dropdown_min_rating:add_value(rating_values[config.shuffle_min_rating], config.shuffle_min_rating)
-	-- add rest of items
-	for i=0,#rating_values do
-		if i ~= config.shuffle_min_rating then
-			dropdown_min_rating:add_value(rating_values[i], i)
-		end
-	end
+-- 	dropdown_min_rating:clear()
+-- 	-- add selected item as first item in dropdown
+-- 	dropdown_min_rating:add_value(rating_values[config.shuffle_min_rating], config.shuffle_min_rating)
+-- 	-- add rest of items
+-- 	for i=0,#rating_values do
+-- 		if i ~= config.shuffle_min_rating then
+-- 			dropdown_min_rating:add_value(rating_values[i], i)
+-- 		end
+-- 	end
 
-	dropdown_max_rating:clear()
-	-- add selected item as first item in dropdown
-	dropdown_max_rating:add_value(rating_values[config.shuffle_max_rating], config.shuffle_max_rating)
-	-- add rest of items
-	for i=#rating_values,0,-1 do
-		if i ~= config.shuffle_max_rating then
-			dropdown_max_rating:add_value(rating_values[i], i)
-		end
-	end
-end
+-- 	dropdown_max_rating:clear()
+-- 	-- add selected item as first item in dropdown
+-- 	dropdown_max_rating:add_value(rating_values[config.shuffle_max_rating], config.shuffle_max_rating)
+-- 	-- add rest of items
+-- 	for i=#rating_values,0,-1 do
+-- 		if i ~= config.shuffle_max_rating then
+-- 			dropdown_max_rating:add_value(rating_values[i], i)
+-- 		end
+-- 	end
+-- end
 
 function reset_rating_indicators()
 	if config.max_rating <= 10 then
@@ -217,81 +223,6 @@ function update_gui()
 	end
 end
 
-function onclick_settings()
-	dialog:delete()
-	dialog = vlc.dialog("Ratings Settings")
-	local row = 1
-	dialog:add_label("Maximum rating", 3, row)
-	settings_dropdown_maxrating = dialog:add_dropdown(4, row)
-	row = row + 1
-
-	if config.show_settings_default_rating then
-		dialog:add_label("Default rating", 3, row)
-		settings_dropdown_defrating = dialog:add_dropdown(4, row)
-		row = row + 1
-	end
-
-	settings_checkbox_write_meta = dialog:add_check_box("Use metadata", false, 3, row)
-	settings_checkbox_write_data = dialog:add_check_box("Use data file", false, 4, row)
-	row = row + 1
-	dialog:add_label(string.rep("&nbsp;", 80), 1, row, 6)
-	row = row + 1
-	dialog:add_button("Cancel", onclick_settings_cancel, 3, row)
-	dialog:add_button("Save", onclick_settings_save, 4, row)
-	update_settings_dialog()
-	dialog:show()
-end
-
-function update_settings_dialog()
-	settings_dropdown_maxrating:clear()
-	if config.max_rating == 5 then
-		settings_dropdown_maxrating:add_value(5, 5)
-		settings_dropdown_maxrating:add_value(10, 10)
-	else
-		settings_dropdown_maxrating:add_value(10, 10)
-		settings_dropdown_maxrating:add_value(5, 5)
-	end
-
-	local rating_values = {[0] = "Unrated"}
-	for i=1,config.max_rating do
-		rating_values[i] = i
-	end
-
-	if config.show_settings_default_rating then
-		settings_dropdown_defrating:clear()
-		settings_dropdown_defrating:add_value(rating_values[config.default_rating], config.default_rating)
-		for i=0,#rating_values do
-			if i ~= config.default_rating then
-				settings_dropdown_defrating:add_value(rating_values[i], i)
-			end
-		end
-	end
-
-	settings_checkbox_write_meta:set_checked(config.write_metadata)
-	settings_checkbox_write_data:set_checked(config.write_datafile)
-end
-
-function onclick_settings_save()
-	config.max_rating = settings_dropdown_maxrating:get_value()
-
-	if config.show_settings_default_rating then
-		config.default_rating = settings_dropdown_defrating:get_value()
-	end
-
-	config.write_metadata = settings_checkbox_write_meta:get_checked()
-	config.write_datafile = settings_checkbox_write_data:get_checked()
-	save_config_file()
-	dialog:delete()
-	dialog = nil
-	show_gui()
-end
-
-function onclick_settings_cancel()
-	dialog:delete()
-	dialog = nil
-	show_gui()
-end
-
 function onclick_refresh_playlist()
 	scan_playlist()
 	update_playlist()
@@ -339,23 +270,66 @@ function rate_current_item(rating)
 	playlist[fullpath] = store[path].rating
 	save_data_file()
 	update_meta(rating)
-    vlc.playlist.next()
-	sleep(1)
-    vlc.playlist.delete(myId)
-    if rating == 1 then
-		local special = fullpath:gsub("/", "\\")
-		-- local trimmed = special:gsub ('^file:\\\\[^\\]+', '')
-		local str = special:sub(9)
-		-- local myString = basename(fullpath)
-		vlc.msg.info(prefix .. "Trimmed path?: " .. str)
-		-- vlc.msg.info(prefix .. "Trimmed path_2?: " .. myString)
-		retval, err = windows_delete(str, 3, 1)
-	end 
-	if retval == nil then
-		vlc.msg.err(prefix .. "unable to delete file: " .. err)
+	local special = fullpath:gsub("/", "\\")
+	local str = special:sub(9)
+
+	local switch = {
+		[1] = function()
+			remove_from_playlist()
+			retval, err = windows_move(str, destRemove, 1, 1)
+			if retval == nil then
+				vlc.msg.err(prefix .. "unable to delete file: " .. err)
+			else
+				vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+			end
+		end,
+		[2] = function()
+			remove_from_playlist()
+			retval, err = windows_move(str, destTwo, 3, 1)
+			if retval == nil then
+				vlc.msg.err(prefix .. "unable to delete file: " .. err)
+			else
+				vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+			end
+		end,
+		[3] = function()
+			remove_from_playlist()
+			retval, err = windows_move(str, destThree, 3, 1)
+			if retval == nil then
+				vlc.msg.err(prefix .. "unable to delete file: " .. err)
+			else
+				vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+			end
+		end,
+		[4] = function()
+			remove_from_playlist()
+			retval, err = windows_move(str, destFour, 3, 1)
+			if retval == nil then
+				vlc.msg.err(prefix .. "unable to delete file: " .. err)
+			else
+				vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+			end
+		end,
+		[5] = function()
+			remove_from_playlist()	
+			retval, err = windows_move(str, destKeep, 3, 1)
+			if retval == nil then
+				vlc.msg.err(prefix .. "unable to delete file: " .. err)
+			else
+				vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+			end
+		end,
+		["default"] = function()
+		print("Unknown value")
+		end
+	}
+
+	if switch[rating] then
+		switch[rating]()
 	else
-		vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+		switch["default"]()
 	end
+
 end
 
 function file_exists(file)
@@ -367,6 +341,22 @@ function sleep(seconds)
 	local t_0 = os.clock()
 	while os.clock() - t_0 <= seconds do end
 end
+
+function windows_move(file, dest, trys, pause)
+	if not file_exists(file) then
+		return nil, "File does not exist"
+	end
+	for i = trys, 1, -1
+	do
+		os.execute("move /y \"" .. file .. "\" \"" .. dest .. "\"")
+		if not file_exists(file) then
+			return true
+		end
+		sleep(pause)
+	end
+	return nil, "Unable to move file"
+end
+
 
 function windows_delete(file, trys, pause)
 	if not file_exists(file) then
@@ -519,10 +509,10 @@ function load_data_file()
 			for field in line:gmatch("[^\t]+") do
                 table.insert(fields, field)
 			end
-
-			local path = fields[1]
-			local rating = tonumber(fields[2])
-			local locked = toboolean(fields[3])
+			local fullpath = fields[1]
+			local path = fields[2]
+			local rating = tonumber(fields[3])
+			local locked = toboolean(fields[4])
 
 			store[path] = {rating=rating, locked=locked}
 		end
@@ -544,6 +534,7 @@ function save_data_file()
 	else
 		for path,item in pairs(store) do
 			if item.rating > 0 then
+				file:write(item.fullpath .. "\t")
 				file:write(path .. "\t")
 				file:write(item.rating .. "\t")
 				file:write(bool_to_number[item.locked] .. "\n")
@@ -757,44 +748,4 @@ function dump_xml(data)
     end
     parse(data, stack)
     return dump
-end
-
--- -- Queue implementation -- --
--- Idea from https://www.lua.org/pil/11.4.html
-
-Queue = {}
-function Queue.new ()
-	return {first = 0, last = -1}
-end
-
-function Queue.enqueue (q, value)
-	q.last = q.last + 1
-	q[q.last] = value
-end
-
-function Queue.dequeue (q)
-	if q.first > q.last then return nil end
-	local value = q[q.first]
-	q[q.first] = nil
-	q.first = q.first + 1
-	return value
-end
-
-function Queue.size(q)
-	return q.last - q.first + 1
-end
-
--- implements the fisher yates shuffle on the queue
--- based on the wikipedia page
-function Queue.shuffle(q)
-	local first = q.first
-	local last = q.last
-	if first > last then return end
-	if first == last then return end
-	for i=first,last-1 do
-		local r = math.random(i,last-1)
-		local temporary = q[i]
-		q[i] = q[r]
-		q[r] = temporary
-	end
 end
