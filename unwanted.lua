@@ -44,19 +44,30 @@ local config = {
 	write_datafile = true,
 	show_locked = false,
 	show_reset_ratings = false,
-	show_settings_default_rating = false
+	show_settings_default_rating = false,
+	data_root = "C://VideoTittaren", 
+	data_dest_1 = "",
+	data_dest_2 = "",
+	data_dest_3 = "",
+	data_dest_4 = "",
+	data_dest_5 = "",
+	delete = false,
+	move = true
+
 }
 
 local playlist = {}          -- holds all music items form the current playlist
 local store = {}             -- holds all music items from the database
 local dialog                 -- main GUI interface
 local prefix = "[unwanted] "  -- prefix to log messages
-local data_file = "C://VideoTittaren"         -- path to data file
-local destRemove = data_file .. "/remove/" -- path to destination folder
-local destKeep = data_file .. "/keep/" -- path to destination folder
-local destTwo = data_file .. "/2/" 
-local destThree = data_file .. "/3/"
-local destFour = data_file .. "/4/"
+-- local data_file = "C://VideoTittaren"         -- path to data file
+local data_file = config.data_root
+local removed_items = {} -- holds all removed items due to low rating.
+-- local destRemove = data_file .. "/remove/" -- path to destination folder
+-- local destKeep = data_file .. "/keep/" -- path to destination folder
+-- local destTwo = data_file .. "/2/" 
+-- local destThree = data_file .. "/3/"
+-- local destFour = data_file .. "/4/"
 
 function activate()
 	vlc.msg.info(prefix .. "Hello!")
@@ -64,12 +75,23 @@ function activate()
 	math.randomseed(os.time())
 
 	-- data_file = vlc.config.userdatadir() .. "/unwanted.csv"
-	data_file = "C://VideoTittaren" .. "/unwanted.csv"
-	config_file = vlc.config.configdir() .. "/unwanted.cfg"
-	vlc.msg.info(prefix .. "using data file " .. data_file)
-	vlc.msg.info(prefix .. "using config file " .. config_file)
+	-- config_file = vlc.config.configdir() .. "/unwanted.cfg"
+	data_file = (config.data_root .. "/unwanted.csv")
+	config_file = config.data_root .. "/unwanted.cfg"
+	vlc.msg.dbg(prefix .. "using data file " .. data_file)
+	vlc.msg.dbg(prefix .. "using config file " .. config_file)
 
 	load_config_file()
+
+	vlc.msg.dbg(prefix .. "delete: " .. tostring(config.delete))
+	vlc.msg.dbg(prefix .. "move: " .. tostring(config.move))
+	vlc.msg.dbg(prefix .. "data_root: " .. config.data_root)
+	vlc.msg.dbg(prefix .. "data_dest_1: " .. config.data_dest_1)
+	vlc.msg.dbg(prefix .. "data_dest_2: " .. config.data_dest_2)
+	vlc.msg.dbg(prefix .. "data_dest_3: " .. config.data_dest_3)
+	vlc.msg.dbg(prefix .. "data_dest_4: " .. config.data_dest_4)
+	vlc.msg.dbg(prefix .. "data_dest_5: " .. config.data_dest_5)
+
 	load_data_file()
 	scan_playlist()
 	update_playlist()
@@ -123,8 +145,11 @@ function show_gui()
 	vlc.msg.info("added " .. indicator .. " indicators")
 	dialog:add_label("<hr>", 1, row, 11, 1)
 	row = row + 1
-
-	dialog:add_button("Refresh Playlist", onclick_refresh_playlist, 2, row)
+	col = col + 1
+	dialog:add_button("Refresh Playlist", onclick_refresh_playlist, col, row)
+	dialog:add_button("Display removed", onclick_display_removed, col, row)
+	-- row = row + 1
+	
 
 	-- if config.show_reset_ratings then
 	-- 	dialog:add_button("Reset Unlocked Ratings", onclick_reset_unlocked_ratings, 4, row)
@@ -135,37 +160,6 @@ function show_gui()
 	update_gui()
 	dialog:show()
 end
-
--- function update_min_max_dropdowns()
--- 	local rating_values = {[0] = "Unrated"}
--- 	for i=1,config.max_rating do
--- 		rating_values[i] = i
--- 	end
-
--- 	if config.shuffle_max_rating > config.max_rating then
--- 		config.shuffle_max_rating = config.max_rating
--- 	end
-
--- 	dropdown_min_rating:clear()
--- 	-- add selected item as first item in dropdown
--- 	dropdown_min_rating:add_value(rating_values[config.shuffle_min_rating], config.shuffle_min_rating)
--- 	-- add rest of items
--- 	for i=0,#rating_values do
--- 		if i ~= config.shuffle_min_rating then
--- 			dropdown_min_rating:add_value(rating_values[i], i)
--- 		end
--- 	end
-
--- 	dropdown_max_rating:clear()
--- 	-- add selected item as first item in dropdown
--- 	dropdown_max_rating:add_value(rating_values[config.shuffle_max_rating], config.shuffle_max_rating)
--- 	-- add rest of items
--- 	for i=#rating_values,0,-1 do
--- 		if i ~= config.shuffle_max_rating then
--- 			dropdown_max_rating:add_value(rating_values[i], i)
--- 		end
--- 	end
--- end
 
 function reset_rating_indicators()
 	if config.max_rating <= 10 then
@@ -228,6 +222,44 @@ function onclick_refresh_playlist()
 	update_playlist()
 end
 
+function onclick_display_removed()
+
+	-- local currentPlaylist = vlc.playlist.get("playlist", false).children
+    -- local count = 0
+
+    -- for _, item in ipairs(currentPlaylist) do
+    --     count = count + 1
+    -- end
+	-- local currentPlaylist = vlc.playlist.list()
+	dialog:delete()
+	dialog = nil
+
+	-- show_gui()
+	dialog = vlc.dialog("Original location and filename of removed items")
+	dropdown_list_removed = dialog:add_list(1, 1, 5, 4)
+	dropdown_list_removed:clear()
+	for text, id in pairs(removed_items) do 
+		dropdown_list_removed:add_value(id, text)
+	end
+	
+	dialog:add_button("Close",  onlick_list_removed_ok, 6, 4)
+	dialog:show()
+	
+end
+
+function update_display_removed(item_removed)
+	vlc.msg.info(prefix .. "updating display removed: " .. item_removed)
+	local itemRemoved = tostring(item_removed)
+	vlc.msg.info(prefix .. "updating display removed: " .. itemRemoved)
+	table.insert(removed_items, itemRemoved)
+end
+
+function onlick_list_removed_ok()
+	dialog:delete()
+	dialog = nil
+	show_gui()
+end
+
 function onclick_reset_unlocked_ratings()
 	for fullpath,item in pairs(playlist) do
 		local path = basename(fullpath)
@@ -240,7 +272,14 @@ function onclick_reset_unlocked_ratings()
 end
 
 function close()
-	vlc.deactivate()
+	if not dialog.title == "Unwanted" then
+		dialog:delete()
+		dialog = nil
+		show_gui()
+	else
+		vlc.deactivate()
+	end
+	
 end
 
 function rate_current_item(rating)
@@ -272,51 +311,95 @@ function rate_current_item(rating)
 	update_meta(rating)
 	local special = fullpath:gsub("/", "\\")
 	local str = special:sub(9)
-
+	vlc.msg.info(prefix .. "str: " .. str)
+	
 	local switch = {
 		[1] = function()
 			remove_from_playlist()
-			retval, err = windows_move(str, destRemove, 1, 1)
-			if retval == nil then
-				vlc.msg.err(prefix .. "unable to delete file: " .. err)
-			else
-				vlc.msg.info(prefix .. "deleted file: " .. fullpath)
-			end
+			if config.delete == true then
+				retval, err = windows_delete(str, 3, 1)
+				if retval == nil then
+					vlc.msg.err(prefix .. "unable to delete file: " .. err)
+				else
+					vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+				end
+			elseif config.move == true then
+				local dest = (tostring(config.data_root) .. tostring(config.data_dest_1))
+				retval, err = windows_move(str, dest, 1, 1)
+				if retval == nil then
+					vlc.msg.err(prefix .. "unable to move file: " .. err)
+				else
+					vlc.msg.info(prefix .. "moved file: " .. fullpath)
+				end
+			end 
 		end,
 		[2] = function()
 			remove_from_playlist()
-			retval, err = windows_move(str, destTwo, 3, 1)
-			if retval == nil then
-				vlc.msg.err(prefix .. "unable to delete file: " .. err)
-			else
-				vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+			if config.delete == true then
+				retval, err = windows_delete(str, 3, 1)
+				if retval == nil then
+					vlc.msg.err(prefix .. "unable to delete file: " .. err)
+				else
+					vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+				end
+			elseif config.move == true then
+				local dest = (tostring(config.data_root) .. tostring(config.data_dest_2))
+				retval, err = windows_move(str, dest, 3, 1)
+				if retval == nil then
+					vlc.msg.err(prefix .. "unable to move file: " .. err)
+				else
+					vlc.msg.info(prefix .. "moved file: " .. fullpath)
+				end
 			end
 		end,
 		[3] = function()
 			remove_from_playlist()
-			retval, err = windows_move(str, destThree, 3, 1)
-			if retval == nil then
-				vlc.msg.err(prefix .. "unable to delete file: " .. err)
-			else
-				vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+			if config.delete == true then
+				retval, err = windows_delete(str, 3, 1)
+				if retval == nil then
+					vlc.msg.err(prefix .. "unable to delete file: " .. err)
+				else
+					vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+				end
+			elseif config.move == true then
+				local dest = (tostring(config.data_root) .. tostring(config.data_dest_3))
+				retval, err = windows_move(str, dest, 3, 1)
+				if retval == nil then
+					vlc.msg.err(prefix .. "unable to move file: " .. err)
+				else
+					vlc.msg.info(prefix .. "moved file: " .. fullpath)
+				end
 			end
+
+			
 		end,
 		[4] = function()
 			remove_from_playlist()
-			retval, err = windows_move(str, destFour, 3, 1)
-			if retval == nil then
-				vlc.msg.err(prefix .. "unable to delete file: " .. err)
-			else
-				vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+			if config.delete == true then
+				retval, err = windows_delete(str, 3, 1)
+				if retval == nil then
+					vlc.msg.err(prefix .. "unable to delete file: " .. err)
+				else
+					vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+				end
+			elseif config.move == true then
+				local dest = (tostring(config.data_root) .. tostring(config.data_dest_4))
+				retval, err = windows_move(str, dest, 3, 1)
+				if retval == nil then
+					vlc.msg.err(prefix .. "unable to move file: " .. err)
+				else
+					vlc.msg.info(prefix .. "moved file: " .. fullpath)
+				end
 			end
 		end,
 		[5] = function()
-			remove_from_playlist()	
-			retval, err = windows_move(str, destKeep, 3, 1)
+			remove_from_playlist()
+			local dest = (tostring(config.data_root) .. tostring(config.data_dest_5))
+			retval, err = windows_move(str, dest, 3, 1)
 			if retval == nil then
-				vlc.msg.err(prefix .. "unable to delete file: " .. err)
+				vlc.msg.err(prefix .. "unable to move file: " .. err)
 			else
-				vlc.msg.info(prefix .. "deleted file: " .. fullpath)
+				vlc.msg.info(prefix .. "moved file: " .. fullpath)
 			end
 		end,
 		["default"] = function()
@@ -329,7 +412,6 @@ function rate_current_item(rating)
 	else
 		switch["default"]()
 	end
-
 end
 
 function file_exists(file)
@@ -343,6 +425,7 @@ function sleep(seconds)
 end
 
 function windows_move(file, dest, trys, pause)
+	update_display_removed(file)
 	if not file_exists(file) then
 		return nil, "File does not exist"
 	end
@@ -359,6 +442,7 @@ end
 
 
 function windows_delete(file, trys, pause)
+	update_display_removed(file)
 	if not file_exists(file) then
 		return nil, "File does not exist"
 	end
@@ -377,8 +461,20 @@ end
 function remove_from_playlist()
 	local id = vlc.playlist.current()
 	vlc.playlist.next()
-	sleep(1) -- wait for current item change
+	-- sleep(1) -- wait for current item change
 	vlc.playlist.delete(id)
+
+	local playlist_children = vlc.playlist.get("playlist", false).children
+    local count = 0
+
+    for _, item in ipairs(playlist_children) do
+        count = count + 1
+    end
+
+	if count == 0 then
+		vlc.playlist.clear()
+		vlc.deactivate()
+	end
 end
 
 
