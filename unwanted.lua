@@ -24,7 +24,7 @@ SOFTWARE.
 
 function descriptor()
 	return {
-		title = "Unwanted",
+		title = "The Unwanted",
 		version = "1.0",
 		license = "MIT",
 		shortdesc = "Unwanted",
@@ -34,6 +34,72 @@ function descriptor()
 	}
 end
 
+local help_html = [[
+<h1 id="top">VLC - The Unwanted extension!</h1>
+
+<ol>
+	<li><a href="#about">About</a>
+	<li><a href="#configuration">Configuration</a>
+	<li><a href="#issues">Reporting issues/bugs/feedback</a>
+</ol>
+
+<h3 id="about">About</h3>
+This extensions helps with moving or removal of files that you do not want to keep in your library.
+
+<p>
+The extension is based on a rating extension developed by pragma <br>
+<a href="https://github.com/pragma-/vlc-ratings">GitHub page for pragma</a>
+<p>
+The functions for deletion is based on extension developed by surrim <br>
+<a href="https://github.com/surrim/vlc-delete">GitHub page for surrim</a>
+
+<a href="#top">Back</a>
+
+<h3 id="configuration">Configuration needed for the extension</h3>
+The extension reads its configuration from a configuration file, it will look for this file in the same folder as the configuration for VLC. <br>
+The name of the configuration file is "unwanted.cfg". <br>
+Which is in the time of writing found under <b>C:\Users\%username%\AppData\Roaming\vlc\</b> <br>
+The same folder is used for the data file that is used to store the ratings and locked status of the files. <br>
+The path for the folder can be overridden by setting the data_root variable in the extension file, <br>
+or in the configuration file. <br>
+
+<p>
+Either way, its the element for "data_root" that needs to be set. <br>
+A altered configuration file must exist in the new "data_root" directory since, not setting it will create one with default values, <br>
+otherwise a configuration loop issue will occur. <br>
+
+<p>
+Settings that can be set in the configuration file are:
+<ol>
+	<li>max_rating - maximum rating that can be set. Default is 5.
+	<li>default_rating - default rating for new files. Default is 0.
+	<li>write_metadata - write rating to metadata. Default is true.
+	<li>write_datafile - write data file. Default is true.
+	<li>show_locked - show locked checkbox in GUI. Default is false.
+	<li>show_reset_ratings - show reset ratings button in GUI. Default is false.
+	<li>show_settings_default_rating - show default rating in GUI. Default is false.
+	<li>delete - delete file when rating is set, except for rating of 5, its so good it has to be spared. Default is false.
+	<li>move - move file when rating is set. Default is true.
+	<li>data_root - path to the root folder where the data file and configuration file is stored.
+	<li>data_dest_1 - path to the folder where the files with rating 1 will be moved to.
+	<li>data_dest_2 - path to the folder where the files with rating 2 will be moved to.
+	<li>data_dest_3 - path to the folder where the files with rating 3 will be moved to.
+	<li>data_dest_4 - path to the folder where the files with rating 4 will be moved to.
+	<li>data_dest_5 - path to the folder where the files with rating 5 will be moved to.
+	<li>filename_removed_files - name of the file where the path to the move/delete files will be stored. Default is "removed_files.txt".
+</ol>
+<br>
+<a href="#top">Back</a>
+<br>
+<h3 id="issues">Reporting issues/bugs/feedback</h3>
+The extensions is a work in progress and is not finished yet. <br>
+Lingering stale code and functions are still in the extension. <br> 
+If you find any issues or want to share feedback, please feel free to do so at
+<a href="https://github.com/grandje81/vlc-unwanted/issues">https://github.com/grandje81/vlc-unwanted/issues</a>!
+<p>
+<a href="#top">Back</a>
+
+]]
 
 -- holds vlc-rating extension configuration variables
 -- set default configuration
@@ -52,7 +118,8 @@ local config = {
 	data_dest_4 = "",
 	data_dest_5 = "",
 	delete = false,
-	move = true
+	move = true,
+	filename_removed_files = "removed_files.txt",
 
 }
 
@@ -63,21 +130,20 @@ local prefix = "[unwanted] "  -- prefix to log messages
 -- local data_file = "C://VideoTittaren"         -- path to data file
 local data_file = config.data_root
 local removed_items = {} -- holds all removed items due to low rating.
--- local destRemove = data_file .. "/remove/" -- path to destination folder
--- local destKeep = data_file .. "/keep/" -- path to destination folder
--- local destTwo = data_file .. "/2/" 
--- local destThree = data_file .. "/3/"
--- local destFour = data_file .. "/4/"
+
 
 function activate()
 	vlc.msg.info(prefix .. "Hello!")
 
 	math.randomseed(os.time())
 
-	-- data_file = vlc.config.userdatadir() .. "/unwanted.csv"
-	-- config_file = vlc.config.configdir() .. "/unwanted.cfg"
-	data_file = (config.data_root .. "/unwanted.csv")
-	config_file = config.data_root .. "/unwanted.cfg"
+	if data_file == nil then
+		data_file = vlc.config.userdatadir() .. "/unwanted.csv"
+		config_file = vlc.config.configdir() .. "/unwanted.cfg"
+	else 
+		data_file = (config.data_root .. "/unwanted.csv")
+		config_file = config.data_root .. "/unwanted.cfg"
+	end 
 	vlc.msg.dbg(prefix .. "using data file " .. data_file)
 	vlc.msg.dbg(prefix .. "using config file " .. config_file)
 
@@ -145,18 +211,10 @@ function show_gui()
 	vlc.msg.info("added " .. indicator .. " indicators")
 	dialog:add_label("<hr>", 1, row, 11, 1)
 	row = row + 1
-	col = col + 1
-	dialog:add_button("Refresh Playlist", onclick_refresh_playlist, col, row)
-	dialog:add_button("Display removed", onclick_display_removed, col, row)
-	-- row = row + 1
-	
+	dialog:add_button("Refresh Playlist", onclick_refresh_playlist, 1, row)
+	dialog:add_button("Display removed", onclick_display_removed, 2, row)
+	dialog:add_button("Help", onclick_help, 10, row)
 
-	-- if config.show_reset_ratings then
-	-- 	dialog:add_button("Reset Unlocked Ratings", onclick_reset_unlocked_ratings, 4, row)
-	-- end
-
-	-- dialog:add_button("Settings", onclick_settings, 8, row)
-	--  update_min_max_dropdowns()
 	update_gui()
 	dialog:show()
 end
@@ -217,6 +275,21 @@ function update_gui()
 	end
 end
 
+function onclick_help()
+	dialog:delete()
+	dialog = vlc.dialog("Unwanted Help")
+	dialog:add_html(help_html, 1, 1, 9, 1)
+	dialog:add_label(string.rep("&nbsp;", 200), 1, 2, 9, 1)
+	dialog:add_button("OK", onclick_help_ok, 5, 3)
+	dialog:show()
+end
+
+function onclick_help_ok()
+	dialog:delete()
+	dialog = nil
+	show_gui()
+end
+
 function onclick_refresh_playlist()
 	scan_playlist()
 	update_playlist()
@@ -243,13 +316,13 @@ function onclick_display_removed()
 	end
 	
 	dialog:add_button("Close",  onlick_list_removed_ok, 6, 4)
+	dialog:add_button("Save", onclick_list_save, 6,5)
 	dialog:show()
 	
 end
 
 function update_display_removed(item_removed)
-	vlc.msg.info(prefix .. "updating display removed: " .. item_removed)
-	local itemRemoved = tostring(item_removed)
+	itemRemoved = tostring(item_removed)
 	vlc.msg.info(prefix .. "updating display removed: " .. itemRemoved)
 	table.insert(removed_items, itemRemoved)
 end
@@ -258,6 +331,28 @@ function onlick_list_removed_ok()
 	dialog:delete()
 	dialog = nil
 	show_gui()
+end
+
+function get_timestamp()
+	local timestamp = os.date("%Y-%m-%d_%H-%M-%S")
+	vlc.msg.info(prefix .. "timestamp: " .. timestamp)
+	return timestamp
+end
+
+function onclick_list_save()
+
+	local timestamp = get_timestamp()
+	local path = config.data_root .. "/" .. timestamp .. "-" .. config.filename_removed_files
+	local file,err = io.open(path, "w")
+	if err then
+		vlc.msg.err(prefix .. "unable to open data file.. exiting")
+		return
+	else
+		for i=1, #removed_items do
+			file:write(removed_items[i] .. "\n")
+		end
+	end
+	io.close(file)
 end
 
 function onclick_reset_unlocked_ratings()
@@ -277,7 +372,8 @@ function close()
 		dialog = nil
 		show_gui()
 	else
-		vlc.deactivate()
+		onclick_display_removed()
+		deactivate()
 	end
 	
 end
@@ -292,6 +388,7 @@ function rate_current_item(rating)
 	end
 
 	reset_rating_indicators()
+
 	if store[path].rating == rating then
 		vlc.msg.info(prefix .. "canceling rating")
 		-- clicked same rating button, set to unrated
@@ -472,8 +569,7 @@ function remove_from_playlist()
     end
 
 	if count == 0 then
-		vlc.playlist.clear()
-		vlc.deactivate()
+		vlc.playlist.clear()		
 	end
 end
 
@@ -653,6 +749,8 @@ function load_config_file()
 			vlc.deactivate()
 			return
 		end
+		save_config_file()
+		vlc.msg.info(prefix .. "created config file with default values")
 	else
 		-- file successfully opened
 		local contents = file:read("*all")
