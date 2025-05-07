@@ -24,7 +24,7 @@ SOFTWARE.
 
 function descriptor()
 	return {
-		title = "The Unwanted",
+		title = "The Unwanted" .. version,
 		version = "1.0",
 		license = "MIT",
 		shortdesc = "Unwanted",
@@ -73,8 +73,8 @@ Settings that can be set in the configuration file are:
 <ol>
 	<li>max_rating - maximum rating that can be set. Default is 5.
 	<li>default_rating - default rating for new files. Default is 0.
-	<li>write_metadata - write rating to metadata. Default is true.
-	<li>write_datafile - write data file. Default is true.
+	<li>write_metadata - write rating to metadata. Default is false.
+	<li>write_datafile - write data file. Default is false.
 	<li>show_locked - show locked checkbox in GUI. Default is false.
 	<li>show_reset_ratings - show reset ratings button in GUI. Default is false.
 	<li>show_settings_default_rating - show default rating in GUI. Default is false.
@@ -88,7 +88,9 @@ Settings that can be set in the configuration file are:
 	<li>data_dest_5 - path to the folder where the files with rating 5 will be moved to.
 	<li>filename_removed_files - name of the file where the path to the move/delete files will be stored. Default is "removed_files.txt".
 </ol>
-<br>
+All the settings can be set in the configuration file, using a xml format.
+i.e <max_rating>5</max_rating> will set the maximum rating to 5.<br>
+
 <a href="#top">Back</a>
 <br>
 <h3 id="issues">Reporting issues/bugs/feedback</h3>
@@ -111,7 +113,7 @@ local config = {
 	show_locked = false,
 	show_reset_ratings = false,
 	show_settings_default_rating = false,
-	data_root = "C://VideoTittaren", 
+	data_root = nil, 
 	data_dest_1 = "",
 	data_dest_2 = "",
 	data_dest_3 = "",
@@ -126,10 +128,10 @@ local config = {
 local playlist = {}          -- holds all music items form the current playlist
 local store = {}             -- holds all music items from the database
 local dialog                 -- main GUI interface
-local prefix = "[unwanted] "  -- prefix to log messages
+local prefix = "[the_unwanted] "  -- prefix to log messages
 -- local data_file = "C://VideoTittaren"         -- path to data file
 local data_file = config.data_root
-local removed_items = {} -- holds all removed items due to low rating.
+local removed_items = {} -- holds all paths to moved/delete items after rating occured.
 
 
 function activate()
@@ -137,12 +139,40 @@ function activate()
 
 	math.randomseed(os.time())
 
-	if data_file == nil then
+	if data_root == nil then
 		data_file = vlc.config.userdatadir() .. "/unwanted.csv"
 		config_file = vlc.config.configdir() .. "/unwanted.cfg"
-	else 
-		data_file = (config.data_root .. "/unwanted.csv")
-		config_file = config.data_root .. "/unwanted.cfg"
+	else
+		-- check if data_root is a valid path
+		local v, err = pcall(vlc.io.readdir(config.data_root))
+			if v then
+				vlc.msg.info(prefix .. "data_root is set to: " .. config.data_root)
+				data_file = (config.data_root .. "/unwanted.csv")
+				config_file = config.data_root .. "/unwanted.cfg"
+			else
+				vlc.msg.err(prefix .. "data_root is not a valid path, using default path")
+				vlc.msg.err(prefix .. "err:" .. err)
+
+				local ud, err pcall(vlc.io.readdir(vlc.config.userdatadir()))
+				if ud then
+					vlc.msg.info(prefix .. "userdatadir is set to: " .. vlc.config.userdatadir())
+					data_file = "" .. vlc.config.userdatadir() .. "/unwanted.csv"
+
+					local cd, err pcall(vlc.io.readdir(vlc.config.configdir()))
+					if cd then
+						vlc.msg.info(prefix .. "configdir is set to: " .. vlc.config.configdir())
+						config_file = "" .. vlc.config.configdir() .. "/unwanted.cfg"		
+					else
+						vlc.msg.err(prefix .. "configdir is not a valid path, using default path")
+						vlc.msg.err(prefix .. "err:" .. err)
+						config_file = "" .. vlc.config.userdatadir() .. "/unwanted.cfg"
+					end 
+				else
+					vlc.msg.err(prefix .. "userdatadir is not a valid path, using default path")
+					vlc.msg.err(prefix .. "err:" .. err)
+					config_file = "" .. vlc.config.userdatadir() .. "/unwanted.cfg"
+				end
+			end
 	end 
 	vlc.msg.dbg(prefix .. "using data file " .. data_file)
 	vlc.msg.dbg(prefix .. "using config file " .. config_file)
