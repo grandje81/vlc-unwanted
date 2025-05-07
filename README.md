@@ -21,7 +21,7 @@ The functions for deletion is based on extension developed by surrim
 The extension reads its configuration from a configuration file, it will look for this file in the same folder as the configuration for VLC.
 
 The name of the configuration file is "unwanted.cfg".
-Which is in the time of writing found under **C:\Users\\%username%\AppData\Roaming\vlc\**
+Which is in the time of writing found under **C:\Users\\%username%\AppData\Roaming\vlc**
 The same folder is used for the data file that is used to store the ratings and locked status of the files.
 The path for the folder can be overridden by setting the data_root variable in the extension file,
 or in the configuration file.
