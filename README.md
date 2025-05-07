@@ -1,4 +1,4 @@
-# VLC - The Unwanted extension!
+# VLC - The Unwanted extension
 
 - [About](#about)
 - [Configuration](#configuration)
