@@ -14,7 +14,7 @@ The extension is based on a rating extension developed by pragma
 The functions for deletion is based on extension developed by surrim
 [GitHub page for surrim](https://github.com/surrim/vlc-delete)
 
-[Back to top](#about)
+[Back to top](#vlc---the-unwanted-extension)
 
 ### Configuration
 
@@ -52,7 +52,7 @@ Settings that can be set in the configuration file are:
 All the settings can be set in the configuration file, using a xml format.
 i.e <max_rating>5</max_rating> will set the maximum rating to 5.
 
-[Back to top](#about)
+[Back to top](#vlc---the-unwanted-extension)
 
 ### Issues
 
@@ -62,4 +62,4 @@ Lingering stale code and functions are still in the extension.
 If you find any issues or want to share feedback, please feel free to do so at
 [https://github.com/grandje81/vlc-unwanted/issues](https://github.com/grandje81/vlc-unwanted/issues)
 
-[Back to top](#about)
+[Back to top](#vlc---the-unwanted-extension)
