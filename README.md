@@ -1,8 +1,8 @@
-# <a id="top">VLC - The Unwanted extension!</a>
+# VLC - The Unwanted extension!
 
 - [About](#about)
 - [Configuration](#configuration)
-- [Issues]("#issues")
+- [Issues](#issues)
 
 ## About
 
@@ -14,14 +14,14 @@ The extension is based on a rating extension developed by pragma
 The functions for deletion is based on extension developed by surrim
 [GitHub page for surrim](https://github.com/surrim/vlc-delete)
 
-[Back](#top)
+[Back to top](#about)
 
 ### Configuration
 
 The extension reads its configuration from a configuration file, it will look for this file in the same folder as the configuration for VLC.
 
 The name of the configuration file is "unwanted.cfg".
-Which is in the time of writing found under <b>C:\Users\\%username%\AppData\Roaming\vlc\ </b>
+Which is in the time of writing found under **C:\Users\\%username%\AppData\Roaming\vlc\**
 The same folder is used for the data file that is used to store the ratings and locked status of the files.
 The path for the folder can be overridden by setting the data_root variable in the extension file,
 or in the configuration file.
@@ -52,13 +52,14 @@ Settings that can be set in the configuration file are:
 All the settings can be set in the configuration file, using a xml format.
 i.e <max_rating>5</max_rating> will set the maximum rating to 5.
 
-[Back](#top)
+[Back to top](#about)
 
-### Reporting issues/bugs/feedback
+### Issues
 
+Reporting issues/bugs/feedback
 The extensions is a work in progress and is not finished yet.
 Lingering stale code and functions are still in the extension.
 If you find any issues or want to share feedback, please feel free to do so at
 [https://github.com/grandje81/vlc-unwanted/issues](https://github.com/grandje81/vlc-unwanted/issues)
 
-[Back](#top)
+[Back to top](#about)
